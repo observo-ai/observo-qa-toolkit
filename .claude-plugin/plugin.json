@@ -1,0 +1,8 @@
+{
+  "name": "observo-qa-toolkit",
+  "description": "QA + product spec toolkit for the Observo test management platform. Bundles five skills: (1) observo-test-cases — generate test cases from a PRD / requirements doc and push them to Observo with sensible defaults (status=IN_REVIEW, assignee=current user); (2) requirements-testing — review a requirement / PRD / Jira ticket for ambiguity, completeness, conflicts, testability, and missing acceptance criteria, posting findings to Jira (if connected) or to console; (3) observo-code-verifier — optionally ground scenarios in actual source code before pushing (graceful degradation when no repo access); (4) prd — write a structured PRD from raw input (meeting transcripts, notes, feature descriptions), body in Russian and section headings in English; (5) pw-sync — Playwright ↔ Observo bridge (Observo replacement for /pw:testrail): create runs, push Playwright JSON-reporter results, attach screenshots/traces on failure, report coverage gaps, import Observo cases as Playwright specs.",
+  "version": "0.5.1",
+  "license": "MIT",
+  "skills": "./skills",
+  "commands": "./commands"
+}
