@@ -115,38 +115,40 @@ Use `mcp__observo__bulk_create_test_cases` (single call for the whole batch). Pe
 | `name` | short scenario title (≤80 chars). Format: `"<area> — <expected outcome>"` |
 | `description` | 1–2 sentences on what's tested and why |
 | `suite_id` | from step 3 |
-| `status` | `IN_REVIEW` by default. If the user explicitly named a different status (`DRAFT` / `APPROVED` / `CHANGES_REQUESTED` / `DEPRECATED`), use that. If status was not mentioned at all, ask once via `AskUserQuestion` with `IN_REVIEW` as the recommended option — see *Status policy* below |
+| `status` | `STATUS_IN_REVIEW` by default. If the user explicitly named a different status (`STATUS_DRAFT` / `STATUS_APPROVED` / `STATUS_CHANGES_REQUESTED` / `STATUS_DEPRECATED`), use that. If status was not mentioned at all, ask once via `AskUserQuestion` with `STATUS_IN_REVIEW` as the recommended option — see *Status policy* below |
 | `owner_id`, `reviewer_id` | UUID from step 4 |
-| `severity` | BLOCKER \| CRITICAL \| NORMAL \| MINOR \| TRIVIAL — judged from AC criticality |
-| `priority` | HIGH \| MEDIUM \| LOW |
-| `layer` | E2E \| API \| UNIT (mostly E2E or API for Observo records) |
-| `type` | FUNCTIONAL \| SECURITY \| REGRESSION \| INTEGRATION \| SMOKE \| ACCEPTANCE \| … |
-| `behavior` | POSITIVE \| NEGATIVE \| DESTRUCTIVE |
-| `automation_status` | `MANUAL` by default |
+| `severity` | `SEVERITY_BLOCKER` \| `SEVERITY_CRITICAL` \| `SEVERITY_NORMAL` \| `SEVERITY_MINOR` \| `SEVERITY_TRIVIAL` — judged from AC criticality |
+| `priority` | `PRIORITY_HIGH` \| `PRIORITY_MEDIUM` \| `PRIORITY_LOW` |
+| `layer` | `LAYER_E2E` \| `LAYER_API` \| `LAYER_UNIT` (mostly E2E or API for Observo records) |
+| `type` | `CASE_TYPE_FUNCTIONAL` \| `CASE_TYPE_SECURITY` \| `CASE_TYPE_REGRESSION` \| `CASE_TYPE_INTEGRATION` \| `CASE_TYPE_SMOKE` \| `CASE_TYPE_ACCEPTANCE` \| `CASE_TYPE_USABILITY` \| `CASE_TYPE_PERFORMANCE` \| `CASE_TYPE_COMPATIBILITY` \| `CASE_TYPE_EXPLORATORY` \| `CASE_TYPE_OTHER` |
+| `behavior` | `BEHAVIOR_POSITIVE` \| `BEHAVIOR_NEGATIVE` \| `BEHAVIOR_DESTRUCTIVE` |
+| `automation_status` | `AUTOMATION_STATUS_MANUAL` by default; `AUTOMATION_STATUS_AUTOMATED` once a spec covers it |
 | `pre_conditions`, `post_conditions` | when material |
 | `steps` | ordered array of `{action, data, expected}` — Action / Data / Expected. Atomic. |
 
+**Use the prefixed enum forms above** (e.g. `PRIORITY_HIGH`, not `HIGH`) — they are the canonical proto names accepted by the backend. The MCP layer also accepts short forms via a normalizer (added in OB-241), but the prefixed form is what the API persists, so passing it directly avoids any normalization edge case and matches what you'll see when you read a case back.
+
 ### 5a. Status policy
 
-Default status for every freshly generated case is **`IN_REVIEW`** — the user needs to review batched output before promoting it. But this is a default, not a hard rule:
+Default status for every freshly generated case is **`STATUS_IN_REVIEW`** — the user needs to review batched output before promoting it. But this is a default, not a hard rule:
 
-- If the user explicitly named a status in their request (`status=APPROVED`, "create as draft", "помісти в approved" тощо) → honour it.
+- If the user explicitly named a status in their request (`status=STATUS_APPROVED`, "create as draft", "помісти в approved" тощо) → honour it.
 - If the user did NOT mention status at all → ask **once** via `AskUserQuestion` with options:
-  1. **`IN_REVIEW` (Recommended)** — needs my review before approval
-  2. `DRAFT` — work-in-progress, not ready for review
-  3. `APPROVED` — skip review (use sparingly)
+  1. **`STATUS_IN_REVIEW` (Recommended)** — needs my review before approval
+  2. `STATUS_DRAFT` — work-in-progress, not ready for review
+  3. `STATUS_APPROVED` — skip review (use sparingly)
 
 Ask the status question only when intent is otherwise unambiguous (i.e. you already know it's Observo records, not Jest code). If you're already disambiguating Observo-vs-Jest, you can combine both questions into a single `AskUserQuestion` call with two questions, to avoid two pop-ups in a row.
 
-### 6. Known limitations (re-check after each MCP release)
+### 6. Post-create sanity check
 
-Some Observo MCP server builds silently drop certain enum fields on create/update — pass them anyway, but verify after the call:
+OB-241 (silent drop of `priority` / `type` / `behavior` on create, `invalid parameters` on update) was fixed on 2026-05-11 by adding short→prefixed normalization in the MCP layer. With the field table above using prefixed forms, the call goes straight through without relying on normalization.
 
-- After `bulk_create_test_cases` / `create_test_case`, read back one or two cases and check whether `priority`, `type`, `behavior` actually persisted (or came back as `PRIORITY_NOT_SET` / `CASE_TYPE_OTHER` / `BEHAVIOR_NOT_SET`).
-- If any field didn't persist, mention it explicitly in the summary — never imply success on a field that didn't apply.
-- If `update_test_case` rejects a field with `invalid parameters`, that's the same class of bug — fall back to leaving the field unchanged and surface the gap.
+After `bulk_create_test_cases` / `create_test_case`, read back one or two cases and confirm `priority`, `type`, `behavior` came back as the values you sent (not `PRIORITY_NOT_SET` / `CASE_TYPE_OTHER` / `BEHAVIOR_NOT_SET`). If they didn't, either:
+- the deployed MCP build pre-dates the OB-241 fix → mention it in the summary so the user can redeploy, **or**
+- a new enum variant was added on the proto side but not in `mcp/internal/tools/enum_normalize.go` → flag for fix.
 
-This guidance is defensive against known bug classes in the Observo MCP layer; once the fix is in, the verification step still does no harm.
+Never imply success on a field that didn't apply.
 
 ### 7. Summary to user
 
@@ -197,5 +199,6 @@ If the user chose "wait" or "no" in step 1: end with one short line — "Automat
 - ❌ Multiple scenarios in one test case — atomic only.
 - ❌ Skipping the semantic duplicate check, or doing it as a literal name-string compare only. A scenario worded slightly differently but verifying the same behavior is still a duplicate — see step 3.
 - ❌ Calling delete tools without explicit user confirmation.
-- ❌ Pretending priority/type/behavior persisted when they didn't (the backend bug).
+- ❌ Pretending `priority` / `type` / `behavior` persisted when they didn't — always sanity-check by reading one or two cases back (see step 6).
+- ❌ Using short enum forms like `HIGH` / `FUNCTIONAL` / `POSITIVE` in payloads. They work today via the MCP normalizer (OB-241), but the prefixed form (`PRIORITY_HIGH`, `CASE_TYPE_FUNCTIONAL`, `BEHAVIOR_POSITIVE`) is the canonical wire format and avoids any failure if the deployed MCP build hasn't picked up the normalizer yet.
 - ❌ Silently dropping assignee — if you can't resolve UUID, say so in the summary.

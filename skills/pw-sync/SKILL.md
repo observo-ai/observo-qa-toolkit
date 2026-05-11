@@ -40,7 +40,7 @@ Steps:
    - otherwise → `templates/crud/`
 4. Generate the test file with the Observo case code pre-wired as an annotation (see *Test Annotation Format* below).
 5. Group specs by suite — one file per Observo suite (`tests/<suite-slug>.spec.ts`), unless the user names another layout.
-6. Don't flip `automation_status` to `AUTOMATED` yet — that happens after a real green run, not at import time.
+6. Don't flip `automation_status` to `AUTOMATION_STATUS_AUTOMATED` yet — that happens after a real green run, not at import time.
 7. Report: X cases imported, Y test files generated, list of paths.
 
 ### 2. Push Test Results → Observo
@@ -132,7 +132,7 @@ Steps:
 2. Extract the ordered steps from the test:
    - Each `test.step('...')` block → one step.
    - Inside each block, derive `action` (the imperative summary), `data` (any input the test types or sends), and `expected` (the `expect(...)` assertion target). If the test doesn't use `test.step`, treat the whole body as a single step and prompt the user to split it.
-3. Call `mcp__observo__update_test_case` to write the new `steps[]`. Be aware some Observo MCP builds silently drop `priority` / `type` / `behavior` on update — read the case back and flag any field that didn't persist.
+3. Call `mcp__observo__update_test_case` to write the new `steps[]`. Pass any enum fields in the prefixed form (`PRIORITY_HIGH`, `CASE_TYPE_FUNCTIONAL`, `BEHAVIOR_POSITIVE`, …). OB-241 fixed silent drops on create/update via MCP normalization (2026-05-11); read the case back to confirm if you suspect a stale MCP build.
 4. Report: case code + number of steps written, plus any dropped fields.
 
 ## MCP Tools Used
@@ -179,7 +179,7 @@ This annotation is the join key between Playwright and Observo. A test without i
 - ❌ Pushing results without surfacing the *unlinked* count. Silent drops hide coverage gaps.
 - ❌ Re-running `npx playwright test` when a fresh `results.json` exists on disk.
 - ❌ Calling `bulk_create_test_cases` from this skill — delegate to `observo-test-cases` for case creation, keep concerns separate.
-- ❌ Flipping `automation_status` to `AUTOMATED` at import time. Only after a real green run.
+- ❌ Flipping `automation_status` to `AUTOMATION_STATUS_AUTOMATED` at import time. Only after a real green run.
 - ❌ Calling any `delete_*` tool without explicit user confirmation — deletes are irreversible.
 
 ## Output
