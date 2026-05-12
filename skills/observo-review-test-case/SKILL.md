@@ -61,7 +61,7 @@ Score each criterion as **pass / fail**. Map every fail to a planned comment wit
 Call `mcp__observo__find_similar_cases` with:
 - `test_case_id`: the case being reviewed
 - `scope`: `"project"` (default — duplicates from another project are almost never actionable)
-- `min_similarity`: `0.85` (the cutoff is tuned for dogfood data; lower means false positives)
+- `min_similarity`: `0.72` (calibrated from OB-250 smoke against `text-embedding-3-small` — real paraphrase pairs sit around cosine 0.65–0.80; 0.85 missed near-duplicates)
 
 How to interpret the response:
 - **Empty `results` list** → criterion #9 passes. No comment.
