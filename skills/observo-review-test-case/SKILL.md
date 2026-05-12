@@ -48,7 +48,7 @@ Score each criterion as **pass / fail**. Map every fail to a planned comment wit
 | 6 | Expected result is specific (UI message / status / state) | `STEP` (or `FIELD` `expected` at case-level) | per offending step |
 | 7 | Action / Data / Expected structure per step | `STEP` | per offending step |
 | 8 | Covers positive, negative, edge cases (suite-level signal — fix as comment on the case) | `CASE` | — |
-| 9 | Not a duplicate of another case in the suite | `CASE` | reference the other short code |
+| 9 | Not a duplicate of another case — see §3.9 below for the embedding-based procedure | `CASE` | reference the other short code |
 | 10 | Automation-ready (deterministic, stable selectors/fields) | `STEP` or `CASE` | per offending area |
 | 11 | `priority` and `type` are set correctly | `FIELD` | `priority` / `type` |
 | 12 | Traceability to requirement / PRD / ticket | `CASE` | — |
@@ -56,7 +56,26 @@ Score each criterion as **pass / fail**. Map every fail to a planned comment wit
 | 14 | For complex flows: expected covers UI **and** backend state | `STEP` or `FIELD` `expected` | — |
 | 15 | Not flaky by design (no bare `wait N seconds`, no shared state, no order dependency) | `STEP` | per offending step |
 
-### 4. Compute the compact score (0–10)
+### 3.9. Criterion #9 — semantic dedup procedure
+
+Call `mcp__observo__find_similar_cases` with:
+- `test_case_id`: the case being reviewed
+- `scope`: `"project"` (default — duplicates from another project are almost never actionable)
+- `min_similarity`: `0.85` (the cutoff is tuned for dogfood data; lower means false positives)
+
+How to interpret the response:
+- **Empty `results` list** → criterion #9 passes. No comment.
+- **Non-empty list** → criterion #9 fails. Take the **top 3** hits (already ordered by cosine desc) and post **one `CASE`-scoped comment per hit** using this exact format:
+
+  > Possible duplicate of `{{short_code}}` (cosine `{{similarity}}`). Decide manually whether this is a true dup before merging.
+
+  Do not collapse multiple hits into a single comment — the user resolves them independently.
+
+Failure / fallback path (do NOT surface an error to the user):
+- RPC returns 404 / 503 / network failure → silently fall back to the legacy heuristic: case names within the same suite that share ≥ 80% tokens.
+- `results` is empty AND the source case is freshly created (< 30s old) → embedding worker is likely still catching up. Skip the criterion this run; the next review will catch it.
+
+
 
 Weights (from PRD):
 
@@ -156,6 +175,8 @@ Skip prose narration about what you did internally — the user sees the diff in
 - ❌ Mixing comment language with case content language. Default English, stay consistent within one case.
 - ❌ Posting more than one comment per failed criterion-and-target. If five steps have vague expected results, that's five separate STEP-scoped comments — but per criterion #6 only.
 - ❌ Continuing in suite-mode without checking with the user first if the suite has >20 cases. Token cost on a 200-case suite is material.
+- ❌ Telling the user "this might be a duplicate" without a concrete `short_code` reference. A bare cosine score is not actionable feedback.
+- ❌ Auto-merging or auto-deleting the case with the highest cosine. The skill marks; the human decides.
 
 ## Tools used
 
@@ -164,6 +185,7 @@ Skip prose narration about what you did internally — the user sees the diff in
 | `mcp__observo__get_test_case` | Step 1 (single case) |
 | `mcp__observo__list_test_cases` | Step 1 (suite mode) |
 | `mcp__observo__list_review_comments` | Step 2 (idempotency) |
+| `mcp__observo__find_similar_cases` | Step 3.9 (semantic dedup, criterion #9) |
 | `mcp__observo__add_review_comment` | Step 7 (post each finding) |
 | `mcp__observo__update_test_case` | Step 8 (status bump only) |
 | `AskUserQuestion` | Disambiguation, suite-size confirm |
@@ -173,5 +195,5 @@ Never invoked by this skill: `delete_review_comment`, `update_review_comment`, `
 ## Caveats
 
 - The 15-criteria checklist is hard-coded here. If a team wants different weights or different style rules (e.g. "every title must start with a verb"), that's a future *Team Style Memory* feature — out of scope for v1.
-- Criterion #9 (semantic duplicate detection) is heuristic-only: similar titles within the same suite. True semantic dedup needs embeddings — future work.
+- Criterion #9 (semantic duplicate detection) is now backed by pgvector embeddings via `mcp__observo__find_similar_cases` (OB-250). The skill falls back to the legacy title-similarity heuristic when the embedding row is missing or the RPC fails — see §3.9.
 - Skill never resolves prior OPEN comments even if the underlying issue is now fixed. Author has to mark them resolved manually in the UI.
