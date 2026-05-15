@@ -8,8 +8,8 @@
 # boundary (Read tool has a 256KB cap on file content) is constrained:
 #   - results.json (a few KB)       -> fine via MCP
 #   - small screenshots (~10-50 KB) -> fine via MCP
-#   - trace.zip (300KB-50MB)        -> blows the Read cap, eats tokens
-#   - video.webm (1-100MB)          -> same problem, much worse
+#   - 50-190KB raw                  -> works but expensive (~85K tokens)
+#   - > ~190KB raw                  -> IMPOSSIBLE via MCP (Read cap)
 # This script does the upload directly via REST + curl, using an API key,
 # so large artefacts never round-trip through the model's context.
 #
@@ -31,8 +31,8 @@
 # E2E_ACCOUNT_API_KEY. content-type auto-detected from extension when
 # omitted.
 #
-# Exits 0 on 2xx, prints { id, storage_url, scope } to stdout as JSON.
-# Exits 1 with stderr error otherwise.
+# Exits 0 on 2xx, prints { id, storage_url, scope, file_name, content_type,
+# bytes } JSON to stdout. Exits 1 with stderr error otherwise.
 
 set -euo pipefail
 
@@ -107,28 +107,44 @@ else
   SCOPE="unknown"
 fi
 
-# base64 piped through tr is portable across mac (-i flag) and linux (-w0).
-B64=$(base64 < "$FILE" | tr -d '\n')
+# json_escape: escapes the two JSON-significant chars (\, ") in argument
+# values. Our domain (UUIDs, short codes, MIME types, file names, presigned
+# URLs) doesn't produce control chars or unicode, so this is sufficient.
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
 
-PAYLOAD=$(mktemp)
-trap 'rm -f "$PAYLOAD" /tmp/upload-attachments.resp' EXIT
+# mktemp for BOTH payload AND response. Parallel invocations (e.g. one loop
+# uploading trace.zip + video.webm + screenshot for a single failed case)
+# would otherwise clobber each other's response file.
+PAYLOAD=$(mktemp -t upload-att-payload.XXXXXX)
+RESP=$(mktemp -t upload-att-resp.XXXXXX)
+trap 'rm -f "$PAYLOAD" "$RESP"' EXIT
 
+# Stream-build the JSON payload to keep base64 out of shell heap.
+#
+# A naive `B64=$(base64 < "$FILE" | tr -d '\n')` stores the entire base64
+# string (×1.333 of file size) in a bash variable. For a 100MB video that's
+# ~133MB of heap; on a small CI container the shell can be OOM-killed before
+# the script ever reaches curl. The append-to-file pattern below avoids the
+# variable entirely — base64 streams straight into $PAYLOAD.
 {
-  echo -n '{'
-  echo -n "\"project_id\":\"$PROJECT_ID\","
-  echo -n "\"file_name\":\"$NAME\","
-  echo -n "\"content_type\":\"$CONTENT_TYPE\","
-  echo -n "\"content\":\"$B64\""
-  [[ -n "$RUN_ID" ]]           && echo -n ",\"run_id\":\"$RUN_ID\""
-  [[ -n "$RUN_CASE_ID" ]]      && echo -n ",\"run_case_id\":\"$RUN_CASE_ID\""
-  [[ -n "$RUN_CASE_STEP_ID" ]] && echo -n ",\"run_case_step_id\":\"$RUN_CASE_STEP_ID\""
-  [[ -n "$STEP_ID" ]]          && echo -n ",\"step_id\":\"$STEP_ID\""
-  echo '}'
+  printf '{"project_id":"%s","file_name":"%s","content_type":"%s","content":"' \
+    "$(json_escape "$PROJECT_ID")" \
+    "$(json_escape "$NAME")" \
+    "$(json_escape "$CONTENT_TYPE")"
+  base64 < "$FILE" | tr -d '\n'
+  printf '"'
+  [[ -n "$RUN_ID" ]]           && printf ',"run_id":"%s"' "$(json_escape "$RUN_ID")"
+  [[ -n "$RUN_CASE_ID" ]]      && printf ',"run_case_id":"%s"' "$(json_escape "$RUN_CASE_ID")"
+  [[ -n "$RUN_CASE_STEP_ID" ]] && printf ',"run_case_step_id":"%s"' "$(json_escape "$RUN_CASE_STEP_ID")"
+  [[ -n "$STEP_ID" ]]          && printf ',"step_id":"%s"' "$(json_escape "$STEP_ID")"
+  printf '}\n'
 } > "$PAYLOAD"
 
 URL="${BASE_URL%/}/api/projects/${PROJECT_ID}/attachments:upload"
 
-HTTP_CODE=$(curl -sS -o /tmp/upload-attachments.resp -w "%{http_code}" \
+HTTP_CODE=$(curl -sS -o "$RESP" -w "%{http_code}" \
   -X POST "$URL" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
@@ -136,18 +152,43 @@ HTTP_CODE=$(curl -sS -o /tmp/upload-attachments.resp -w "%{http_code}" \
 
 if [[ "$HTTP_CODE" -lt 200 || "$HTTP_CODE" -ge 300 ]]; then
   echo "[upload-attachments] HTTP $HTTP_CODE for $URL" >&2
-  cat /tmp/upload-attachments.resp >&2
+  cat "$RESP" >&2
   echo >&2
   exit 1
 fi
 
 if command -v jq >/dev/null 2>&1; then
-  ID=$(jq -r '.attachment.id // .id // empty' /tmp/upload-attachments.resp)
-  STORAGE_URL=$(jq -r '.attachment.storage_url // .storage_url // empty' /tmp/upload-attachments.resp)
+  ID=$(jq -r '.attachment.id // .id // empty' "$RESP")
+  STORAGE_URL=$(jq -r '.attachment.storage_url // .storage_url // empty' "$RESP")
 else
-  ID=$(grep -oE '"id"[[:space:]]*:[[:space:]]*"[^"]+"' /tmp/upload-attachments.resp | head -1 | sed 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-  STORAGE_URL=$(grep -oE '"storage_url"[[:space:]]*:[[:space:]]*"[^"]+"' /tmp/upload-attachments.resp | head -1 | sed 's/.*"storage_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+  ID=$(grep -oE '"id"[[:space:]]*:[[:space:]]*"[^"]+"' "$RESP" | head -1 | sed 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+  STORAGE_URL=$(grep -oE '"storage_url"[[:space:]]*:[[:space:]]*"[^"]+"' "$RESP" | head -1 | sed 's/.*"storage_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 fi
 
-printf '{"id":"%s","storage_url":"%s","scope":"%s","file_name":"%s","content_type":"%s","bytes":%d}\n' \
-  "$ID" "$STORAGE_URL" "$SCOPE" "$NAME" "$CONTENT_TYPE" "$(wc -c < "$FILE")"
+# Fail loudly when extraction returns empty. The fallback grep + sed can
+# silently produce an empty string if the response shape shifts, and a
+# default `{"id":"",...}` output is valid JSON but downstream-useless.
+[[ -n "$ID" ]] || err "failed to extract attachment id from response — body was: $(cat "$RESP")"
+
+BYTES=$(wc -c < "$FILE" | tr -d ' ')
+
+# Emit JSON via jq when available — handles all escaping correctly.
+# Fallback uses json_escape on every field; same safety contract.
+if command -v jq >/dev/null 2>&1; then
+  jq -cn \
+    --arg id "$ID" \
+    --arg storage_url "$STORAGE_URL" \
+    --arg scope "$SCOPE" \
+    --arg file_name "$NAME" \
+    --arg content_type "$CONTENT_TYPE" \
+    --argjson bytes "$BYTES" \
+    '{id:$id, storage_url:$storage_url, scope:$scope, file_name:$file_name, content_type:$content_type, bytes:$bytes}'
+else
+  printf '{"id":"%s","storage_url":"%s","scope":"%s","file_name":"%s","content_type":"%s","bytes":%d}\n' \
+    "$(json_escape "$ID")" \
+    "$(json_escape "$STORAGE_URL")" \
+    "$(json_escape "$SCOPE")" \
+    "$(json_escape "$NAME")" \
+    "$(json_escape "$CONTENT_TYPE")" \
+    "$BYTES"
+fi

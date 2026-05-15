@@ -279,12 +279,15 @@ If counts mismatch → skip step-level for this test entirely; log diff to summa
 
 **Two upload paths — pick by file size, not by preference:**
 
-| Path | When to use | Why |
+| Raw file size | MCP inline (`upload_attachment`) | Helper (`./upload-attachments.sh`) |
 |---|---|---|
-| `mcp__observo__upload_attachment` (inline base64) | small text/JSON evidence, < ~50KB — `results.json`, short logs, small screenshots | base64 string is small enough to flow through Claude's tool-call boundary cheaply |
-| `./upload-attachments.sh` helper (REST + curl) | everything else — `trace.zip` (300KB-50MB), `video.webm` (1-100MB), HTML report, large screenshots | the base64 of `trace.zip` regularly exceeds Claude's 256KB Read cap; even when it fits, it burns ~140K+ tokens just to transit the model |
+| **< ~50 KB** | fine, ~16K tokens | also works |
+| **~50–190 KB** | expensive, up to ~85K tokens | preferred |
+| **> ~190 KB** | **impossible** — Claude's Read tool hard-caps file content at 256KB (~190KB raw after the ×1.333 base64 expansion). The tool can't ingest the file to build the JSON arg in the first place. | required |
 
-The helper script lives next to this SKILL.md (`upload-attachments.sh`) and uses the same `/api/projects/{project_id}/attachments:upload` endpoint with an API key from env (`OBSERVO_API_KEY` / `E2E_ACCOUNT_API_KEY`). Same scope rules (run / case / step), same validation, just no token cost.
+So the helper isn't just a token-cost optimization. Above ~190KB raw it is the only path. Below that the line is soft — measured tokens vs convenience.
+
+The helper script lives next to this SKILL.md (`upload-attachments.sh`) and uses the same `/api/projects/{project_id}/attachments:upload` endpoint with an API key from env (`OBSERVO_API_KEY` / `E2E_ACCOUNT_API_KEY`). Same scope rules (run / case / step), same validation. It also stream-builds the JSON payload (base64 piped straight into a temp file) so it doesn't hold a `~Nx` copy in shell heap — relevant when uploading a 100MB video on a 512MB CI container.
 
 **Case-level (FAILED/BLOCKED only):**
 For each attachment in `playwright_test.attachments` (screenshot/trace/video):
@@ -313,7 +316,7 @@ For each attachment in `playwright_test.attachments` (screenshot/trace/video):
 Skip `playwright_test.attachments` whose `name` is `console` or who have no `path` (no file on disk).
 
 **Run-level (always, regardless of pass/fail):**
-Once per pw-run invocation, upload the full `results.json` (this one IS always inline — `results.json` is a few KB):
+Once per pw-run invocation, upload the full `results.json`. For typical suites this file is a few KB and MCP-inline is fine. **For large suites it can blow past 50KB and even past 190KB** (a project with 500+ test cases easily hits that). Check `wc -c playwright-report/results.json` before choosing the path — if it's over 50KB use the helper; the same size-tier table above applies. Otherwise inline:
 ```
 mcp__observo__upload_attachment
   project_id: <project UUID>
@@ -328,7 +331,7 @@ This is the ontology event log per PRD D2.
 
 **Don't upload** the HTML report (`<PlaywrightRoot>/playwright-report/index.html` + assets) — human artifact, dups `results.json` for machines.
 
-**Decision rule, restated:** if it's a Playwright `attachment.contentType` of `image/png` and the file is under 50KB, inline via MCP is fine. Anything labelled `application/zip` (traces), `video/*`, or bigger than ~50KB — use the helper. When unsure, the helper always works and never burns tokens; MCP-inline is the cost optimization for small evidence, not the default.
+**Decision rule, restated:** if the file is under ~50KB, inline via MCP is fine — but if you're not sure of the size, the helper is the safer default because **MCP inline is impossible above ~190KB raw (256KB Read cap)**, not just expensive. Anything labelled `application/zip` (traces), `video/*`, or above ~50KB — use the helper. The helper always works and never burns model tokens; MCP-inline is the cost optimization for known-small evidence, not the default.
 
 ### 10. Finalize run
 
@@ -396,8 +399,8 @@ Final summary to user:
 - ❌ Treating non-zero Playwright exit as fatal. Playwright exits non-zero when tests fail — that's a signal to writeback, not a reason to abort.
 - ❌ Skipping the run-level `results.json` upload when there are no failures. Run-level upload is the **event log** (PRD D2), independent of pass/fail.
 - ❌ Pushing HTML report as an attachment. Human artifact, duplicates `results.json` for machines.
-- ❌ **Inlining `trace.zip`, `video.webm`, or any attachment > ~50KB via `mcp__observo__upload_attachment`.** The base64 transits through Claude's tool boundary; the Read tool caps file content at 256KB and large attachments burn six-figure token counts even when they fit. Use the `./upload-attachments.sh` helper next to this SKILL.md — same endpoint, same scope rules, no token cost.
-- ❌ **Looking for a single "upload everything" tool.** `upload-attachments.sh` is intentionally one-file-per-invocation so each upload's scope (run / case / step) is explicit at the call site. Loop in the caller, not in the helper — keeps failure modes localized and the diff between MCP-inline and helper paths trivial.
+- ❌ **Inlining `trace.zip`, `video.webm`, or any attachment > ~50KB via `mcp__observo__upload_attachment`.** Above ~190KB raw it's impossible (256KB Read cap), and from 50KB to 190KB it burns ~16K to ~85K tokens just to transit the model. Use the `./upload-attachments.sh` helper next to this SKILL.md — same endpoint, same scope rules, no token cost.
+- ❌ **Adding a batch / scan-all mode to `upload-attachments.sh`.** One file per invocation is intentional — each upload's scope (run / case / step) is explicit at the call site, failure isolation is trivial (one curl, one exit code), and parallel runs share nothing (both payload and response files use `mktemp`). If a caller needs to upload many files, loop in the caller, not in the helper.
 - ❌ Flipping `automation_status` to `AUTOMATED` after green run. Explicit human decision; not in this skill.
 - ❌ Closing a run when user passed `--keep-open` or when there are still expected cases unreported (partial push scenario).
 - ❌ Calling `mcp__observo__delete_*` from this skill. Ever. Destructive ops are user-driven via natural language with explicit confirmation.
