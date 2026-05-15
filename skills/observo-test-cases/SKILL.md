@@ -173,24 +173,49 @@ Steps:
 
    Skip this question (default to "wait") if the chosen status was `DRAFT` (cases aren't ready for automation).
 
-2. **Pick the scaffolding skill** the user prefers:
-   - Default candidate: `engineering-skills:senior-qa` (covers Jest + RTL + Playwright scaffolding). Use it if it appears in the current session's *available skills* list.
-   - If the default candidate is NOT available, ask the user (via a second `AskUserQuestion`) for the exact name of their preferred scaffolding skill, OR offer "skip — I'll do this manually later".
-   - Never hard-code an assumption that `senior-qa` exists. The skill name is a default, not a dependency.
+2. **Group the created cases by `layer` (and `type` for special cases) — different layers need different scaffolders.** Don't route everything to one skill.
 
-3. **Invoke the chosen scaffolding skill** via the `Skill` tool:
+   From the `bulk_create_test_cases` response, count cases per `layer` (`LAYER_E2E` / `LAYER_API` / `LAYER_UNIT`). Also flag any case where `type` is `CASE_TYPE_PERFORMANCE` / `CASE_TYPE_SECURITY` / `CASE_TYPE_USABILITY` / `CASE_TYPE_COMPATIBILITY` / `CASE_TYPE_EXPLORATORY` — those typically need a non-Playwright path.
+
+   **Pick a scaffolding skill per layer-group**, with the candidate ordered preferred → fallback. Always check availability against the current session's available-skills list before suggesting — never assume any skill exists.
+
+   | Layer / type group | Preferred candidate | Fallback candidates |
+   |---|---|---|
+   | `LAYER_E2E` (UI flows) | `pw-generate` — same plugin as this one, Observo-aware (`@observo:<code>` tag), repo-agnostic discovery, knows the `.observo-pw.json` config | `engineering-skills:senior-qa` (Playwright + Jest + RTL), or `pw:generate` from the external `pw` plugin if installed |
+   | `LAYER_API` (backend endpoint / contract tests) | `engineering-advanced-skills:api-test-suite-builder` — built for REST/contract testing | `engineering-skills:senior-qa` (covers API testing), or `engineering-skills:senior-backend` |
+   | `LAYER_UNIT` (component / function unit tests) | `engineering-skills:senior-qa` — Jest + RTL focus | `engineering-skills:tdd-guide` (TDD-focused, multi-framework) |
+   | `type=CASE_TYPE_PERFORMANCE` | no plugin scaffolder — usually manual k6 / JMeter / custom bench setup | offer "skip — wire performance tests manually" |
+   | `type=CASE_TYPE_SECURITY` | `engineering-skills:senior-security` if available | offer "skip" |
+   | `type=CASE_TYPE_USABILITY` / `EXPLORATORY` | no automation candidate — these are manual by nature | offer "skip" |
+   | Other / unrecognized | no preferred | `AskUserQuestion` with text input for the skill name, or "skip this group" |
+
+   **Decision flow:**
+   - If all created cases fall in ONE group → single `AskUserQuestion` with preferred + fallback + "skip" options.
+   - If created cases span MULTIPLE groups → either one `AskUserQuestion` per group, OR a single batched `AskUserQuestion` with up to 4 sub-questions (one per group, since `AskUserQuestion` allows 1-4 questions). Prefer batched to minimize prompts.
+   - If a group's preferred isn't in the session's available-skills list → surface the next fallback as the default for that group automatically.
+   - Never hard-code an assumption that any specific skill exists. The names above are preferences, not dependencies.
+
+3. **Invoke chosen skill(s)** via the `Skill` tool — one invocation per non-skipped group:
    ```
    Skill(skill="<chosen-skill-name>")
    ```
-   Before invoking, prepare a tight handoff brief in plain text so the next skill has context — keep it under ~10 lines:
+   Before each invocation, prepare a tight handoff brief in plain text — keep it under ~10 lines:
    - Source doc path (e.g. requirements file)
-   - List of Observo case codes that should map to generated specs (e.g. `OB-1..OB-49`) — pull from the bulk_create response
+   - **Only the case codes in THIS layer-group** (filter the bulk_create response by `layer`) — e.g. `OB-12..OB-23` for E2E, `OB-24..OB-31` for API
+   - Layer / type context (so the scaffolder knows what kind of test to write)
    - Preferred output language / framework if the user named one (else let the scaffolding skill ask)
-   - Reminder to wire CI to push results back to Observo runs via the Observo MCP (`create_run` / `update_case_in_run` / `update_step_in_run`)
+   - For E2E group routed to `pw-generate`: mention `.observo-pw.json` exists if it does (skill will auto-detect, just informational)
+   - For non-E2E groups: reminder to wire CI to push results back to Observo runs via MCP (`create_run` / `update_case_in_run` / `update_step_in_run`) — `pw-generate`'s sibling `pw-run` skill (when it lands) won't help these layers, so the chosen scaffolder needs its own writeback path
 
-4. **After the scaffolding skill returns**, summarize what landed (number of spec files, paths) and confirm the user can now run them locally / in CI.
+4. **After all chosen scaffolders return**, summarize per-group:
+   - `E2E layer: 12 cases → 4 spec files via pw-generate (paths: ...)`
+   - `API layer: 8 cases → 2 spec files via senior-qa (paths: ...)`
+   - `UNIT layer: 5 cases → skipped (user choice — will wire manually)`
+   - `Performance cases: 2 → skipped (no plugin scaffolder; manual k6 setup needed)`
 
-If the user chose "wait" or "no" in step 1: end with one short line — "Automation skipped; re-trigger when you're ready by asking to 'automate the approved cases' or by running `<scaffolding-skill-name>` directly."
+   Confirm the user can run / lint the generated code in each group.
+
+If the user chose "wait" or "no" in step 1: end with one short line — "Automation skipped; re-trigger when you're ready by asking to 'automate the approved cases'. The skill will then group by layer (E2E / API / UNIT / etc.) and route to the right scaffolder per group."
 
 ## Anti-patterns
 
