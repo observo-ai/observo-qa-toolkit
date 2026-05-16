@@ -1,6 +1,6 @@
 ---
 name: observo-test-cases
-description: Generate test cases for a feature, requirement, or PRD and push them to the kb-observo test management platform with sensible defaults — status=IN_REVIEW and assignee = current user. Use when the user asks to "створи тест кейси", "напиши test cases", "create test cases", "push test cases to kb-observo", "test cases for <module/requirement>", or similar. If the user did not explicitly say whether they want kb-observo records or local Jest/RTL/Playwright code, ask first via AskUserQuestion before doing anything.
+description: Generate test cases for a feature, requirement, or PRD and push them to the Observo test management platform with sensible defaults — status=IN_REVIEW and assignee = current user. Use when the user asks to "створи тест кейси", "напиши test cases", "create test cases", "push test cases to Observo", "test cases for <module/requirement>", or similar. If the user did not explicitly say whether they want Observo records or local Jest/RTL/Playwright code, ask first via AskUserQuestion before doing anything.
 ---
 
 # Observo Test Cases Skill
