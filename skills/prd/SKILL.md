@@ -1,6 +1,6 @@
 ---
 name: prd
-description: Write a structured PRD from raw user input — meeting transcripts, notes, or feature descriptions. Body in Russian, section headings in English. Use when the user asks to "напиши PRD", "створи PRD", "draft a PRD", "write a PRD for <feature>", "PRD из транскрипта/нотаток", or provides meeting notes / requirements text expecting a structured product spec back. Default save location in this repo: `knowledge-base/20 - Projects/<ProjectName>/PRD-<feature-name>.md`.
+description: Write a structured PRD from raw user input — meeting transcripts, notes, or feature descriptions. Body in Russian, section headings in English. Use when the user asks to "напиши PRD", "створи PRD", "draft a PRD", "write a PRD for <feature>", "PRD из транскрипта/нотаток", or provides meeting notes / requirements text expecting a structured product spec back. Default save location in this repo: `kb-observo/20 - Projects/<ProjectName>/PRD-<feature-name>.md`.
 ---
 
 # PRD Skill — Write a PRD from user input
@@ -14,7 +14,7 @@ The user will provide raw input — typically a meeting transcript, notes, or a 
 1. Read everything the user provides. If it's a meeting transcript, extract decisions, requirements, field names, data sources, and explicit non-goals.
 2. Ask no clarifying questions unless a critical piece is truly missing (e.g. no target product mentioned at all). Make reasonable assumptions and note them.
 3. Write the PRD using the structure below: headings in English, body text in Russian.
-4. Save the file to the appropriate location. In this repo (observo), default to `knowledge-base/20 - Projects/<ProjectName>/PRD-<feature-name>.md` if such a folder structure exists; otherwise ask the user for the target path or save next to related docs.
+4. Save the file to the appropriate location. In this repo (observo), default to `kb-observo/20 - Projects/<ProjectName>/PRD-<feature-name>.md` if such a folder structure exists; otherwise ask the user for the target path or save next to related docs.
 
 ## PRD Structure
 

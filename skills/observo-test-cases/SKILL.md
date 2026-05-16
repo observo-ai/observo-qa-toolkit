@@ -1,6 +1,6 @@
 ---
 name: observo-test-cases
-description: Generate test cases for a feature, requirement, or PRD and push them to the Observo test management platform with sensible defaults — status=IN_REVIEW and assignee = current user. Use when the user asks to "створи тест кейси", "напиши test cases", "create test cases", "push test cases to Observo", "test cases for <module/requirement>", or similar. If the user did not explicitly say whether they want Observo records or local Jest/RTL/Playwright code, ask first via AskUserQuestion before doing anything.
+description: Generate test cases for a feature, requirement, or PRD and push them to the kb-observo test management platform with sensible defaults — status=IN_REVIEW and assignee = current user. Use when the user asks to "створи тест кейси", "напиши test cases", "create test cases", "push test cases to kb-observo", "test cases for <module/requirement>", or similar. If the user did not explicitly say whether they want kb-observo records or local Jest/RTL/Playwright code, ask first via AskUserQuestion before doing anything.
 ---
 
 # Observo Test Cases Skill
@@ -9,7 +9,7 @@ Workflow for creating test cases in **Observo** (a test management platform — 
 
 ## Trigger
 
-The user asks (UA or EN) to write/create/push test cases for a feature, requirement, PRD, module, or knowledge-base doc. Phrases like:
+The user asks (UA or EN) to write/create/push test cases for a feature, requirement, PRD, module, or kb-observo doc. Phrases like:
 - "створи тест кейси для <X>"
 - "напиши test cases на <module>"
 - "create test cases for <feature/requirement>"
@@ -33,7 +33,7 @@ Do NOT assume the default. Asking is cheap; pushing 50 cases to Observo when the
 
 ### 1. Identify the source
 
-The "feature/requirement" usually lives under `knowledge-base/04-Product/Requirements/` (as-built docs) or `knowledge-base/04-Product/PRDs/`. Read the doc end-to-end. The Acceptance Criteria list is the primary source of test scenarios.
+The "feature/requirement" usually lives under `kb-observo/04-Product/Requirements/` (as-built docs) or `kb-observo/04-Product/PRDs/`. Read the doc end-to-end. The Acceptance Criteria list is the primary source of test scenarios.
 
 ### 1a. Requirement quality gate (optional, recommended)
 
