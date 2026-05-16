@@ -26,7 +26,7 @@ User asks (UA / EN) to review or test requirements *as a deliverable*, not yet a
 
 One of the following must be supplied (ask once via `AskUserQuestion` if it's not clear from the conversation):
 
-- **File path** to a requirements / PRD / spec / user story doc (typical: `knowledge-base/04-Product/Requirements/<file>.md`, `knowledge-base/04-Product/PRDs/<file>.md`).
+- **File path** to a requirements / PRD / spec / user story doc (typical: `kb-observo/04-Product/Requirements/<file>.md`, `kb-observo/04-Product/PRDs/<file>.md`).
 - **Jira ticket key** (e.g. `OB-123`, `PROJ-456`). Detected as `[A-Z][A-Z0-9]+-\d+` in the user's message.
 - **Inline text** (user pasted the user story / requirement directly).
 - **Multiple of the above** — e.g. a doc + several linked tickets. Conflict-checking across them is a feature, not a problem.

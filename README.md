@@ -45,7 +45,7 @@ QA + product-spec toolkit для роботи з Observo (`https://observoai.co`
 
 **Що робиш:** `"напиши PRD з цих нотаток"`.
 
-**На виході:** Markdown файл (для observo репо — `knowledge-base/04-Product/PRDs/`), body російська + заголовки англійська, секції Overview / Problem / Goals / Non-Goals / User Stories / Data Model / API / UI / Integrations / Acceptance Criteria / Out of Scope.
+**На виході:** Markdown файл (для observo репо — `kb-observo/04-Product/PRDs/`), body російська + заголовки англійська, секції Overview / Problem / Goals / Non-Goals / User Stories / Data Model / API / UI / Integrations / Acceptance Criteria / Out of Scope.
 
 **Контрол:** прочитай AC секцію — це майбутній скелет тест-кейсів.
 
@@ -111,7 +111,7 @@ generate Playwright tests for OB-12..OB-49
 ```
 або
 ```
-згенеруй .spec.ts з knowledge-base/04-Product/Requirements/01-Auth.md
+згенеруй .spec.ts з kb-observo/04-Product/Requirements/01-Auth.md
 ```
 
 **Що відбувається:**

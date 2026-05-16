@@ -22,7 +22,7 @@ Ground PRD-derived test scenarios in the actual implementation, so error message
 
 The invoker should provide, in plain text:
 
-1. **Source doc path** (if any) — e.g. `knowledge-base/04-Product/Requirements/01-Auth-Accounts.md`.
+1. **Source doc path** (if any) — e.g. `kb-observo/04-Product/Requirements/01-Auth-Accounts.md`.
 2. **Scenario list** — at minimum: name + key claims that could be code-verified. Either inline JSON or a textual list. Each scenario should expose:
    - Expected HTTP endpoint path (if applicable)
    - Expected error message string (if applicable)
