@@ -79,7 +79,7 @@ When skills emit beacon calls (and only when), the same
 | `account_id` | UUID | Your account. Same as Layer 1. |
 | `event_type` | enum string | `skill_invoke` \| `skill_completed` \| `skill_skipped` \| `plugin_install`. |
 | `tool_name` | string | The skill name (e.g. `prd`, `pw-generate`). For `plugin_install` events, the sentinel `plugin`. |
-| `plugin_version` | string | Plugin semver from `.claude-plugin/plugin.json`, e.g. `1.0.0`. |
+| `plugin_version` | string | Plugin semver from `.claude-plugin/plugin.json`, e.g. `1.1.1`. Resolved from the highest-versioned directory under `~/.claude/plugins/cache/<marketplace>/observo-qa-toolkit/` (the canonical install path), falling back to `~/.claude/plugins/observo-qa-toolkit/`, the consumer repo's submodule, then alt config locations. Cache-first ordering ensures `/plugin update` is reflected immediately; submodule pins (which lag upstream) are last. |
 | `status` | enum string | Always `ok` for beacon events. Layer 2 is informational, not an error channel. |
 | `error_code` | `null` | Always `null` for Layer 2. |
 | `duration_ms` | `0` | Not meaningful for beacon events. |

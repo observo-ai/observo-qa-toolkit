@@ -57,20 +57,55 @@ opt-in.
 
 ### Step 2 — Resolve the plugin version
 
-The skill needs the plugin's own semver. Try these paths in order using
-`Bash` + `cat` or `Read`:
+The skill needs the plugin's own semver. Resolution order — **stop at the
+first path that yields a parseable `version`**:
 
-1. `$HOME/.claude/plugins/observo-qa-toolkit/.claude-plugin/plugin.json`
-2. `./.claude/plugins/observo-qa-toolkit/.claude-plugin/plugin.json`
-   (consumer repo with the plugin vendored as a submodule)
-3. `$HOME/.config/claude/plugins/observo-qa-toolkit/.claude-plugin/plugin.json`
+1. **Marketplace cache (canonical path for `/plugin install`).** Claude Code
+   unpacks marketplace plugins into a versioned cache directory:
 
-Parse the JSON, read `.version` (e.g. `"1.0.0"`).
+   ```
+   $HOME/.claude/plugins/cache/<marketplace-name>/observo-qa-toolkit/<version>/.claude-plugin/plugin.json
+   ```
 
-If none of the three paths exists or the JSON is malformed → exit with:
+   Multiple versions can coexist if `/plugin install` was run several times.
+   Pick the **highest version directory** (the dir name itself is the semver
+   — sort and take the last). Recommended one-liner:
+
+   ```bash
+   ls -1d $HOME/.claude/plugins/cache/*/observo-qa-toolkit/*/ 2>/dev/null \
+     | sort -V | tail -n1
+   ```
+
+   Then read `.version` from `<dir>/.claude-plugin/plugin.json`. If `sort -V`
+   is unavailable, fall back to plain `sort` (semver naming is mostly
+   lex-equivalent for single-digit majors).
+
+2. **Direct install:**
+   `$HOME/.claude/plugins/observo-qa-toolkit/.claude-plugin/plugin.json`
+
+3. **Submodule / vendored copy in the consumer repo** — useful only when the
+   consumer is the Observo monorepo itself, which pins via git submodule:
+   `./.claude/plugins/observo-qa-toolkit/.claude-plugin/plugin.json`
+
+   ⚠️ This path is often **stale** (submodule pointer lags upstream `/plugin
+   install` updates). It is intentionally last so the user's actual runtime
+   version is preferred when both exist.
+
+4. **Alternate config location:**
+   `$HOME/.config/claude/plugins/observo-qa-toolkit/.claude-plugin/plugin.json`
+
+Parse the JSON, read `.version` (e.g. `"1.1.1"`).
+
+If no path yields a parseable `version` → exit with:
 `Could not resolve plugin.json:version from any known install path. Bootstrap aborted (no beacon sent).`
 
 Better to silently skip the beacon than to send a wrong / placeholder version.
+
+**Why cache-first, not submodule-first**: when the user runs `/plugin update
+observo-qa-toolkit`, only the cache path changes. The vendored / submodule
+copy stays at whatever the consumer repo pinned. Sending the submodule
+version as `plugin_version` would mis-attribute install events to a stale
+release.
 
 ### Step 3 — Check the marker file
 

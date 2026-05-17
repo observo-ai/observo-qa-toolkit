@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [1.1.1] - 2026-05-17
+
+### Fixed
+
+- **`observo-toolkit-bootstrap` plugin-version lookup (OB-278).** The skill
+  was missing the canonical marketplace-cache path
+  (`~/.claude/plugins/cache/<marketplace>/observo-qa-toolkit/<version>/`),
+  so when a consumer ran `/plugin update` while also having an older
+  vendored / submodule copy on disk, the beacon mis-reported the stale
+  version. The lookup list is now reordered cache-first, with version-sort
+  semantics (`sort -V`) over the cached versioned directories. Submodule
+  / vendored paths remain valid but are last because they often lag the
+  user's actual runtime version.
+
+### Documentation
+
+- TELEMETRY.md `plugin_version` field row now spells out the resolution
+  order, so the disclosure matches what the skill actually does.
+
 ## [1.1.0] - 2026-05-17
 
 ### Added
