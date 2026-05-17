@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [1.1.0] - 2026-05-17
+
+### Added
+
+- **`observo-toolkit-bootstrap` skill** — records one Layer 2 `plugin_install`
+  telemetry beacon per consumer repo, idempotently. Gated on
+  `.observo-toolkit.json:telemetry_enabled` (opt-in, default `false`).
+  Writes a marker at `.observo-toolkit/.install-seeded` so subsequent
+  invocations are a no-op; re-fires automatically when the plugin version
+  in `.claude-plugin/plugin.json` changes. Auto-writes a nested
+  `.observo-toolkit/.gitignore` so the marker never gets committed by
+  accident.
+
+### Changed
+
+- `plugin.json` description now lists eight skills (was seven).
+
 ## [1.0.0] - 2026-05-17
 
 Initial public release. Plugin extracted from the observo monorepo, refactored

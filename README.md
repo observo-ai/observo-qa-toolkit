@@ -16,7 +16,7 @@ Repo-agnostic. Works on any Playwright project — the only hardcoded contract i
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [First workflow](#first-workflow)
-- [The 7 skills](#the-7-skills)
+- [The 8 skills](#the-8-skills)
 - [End-to-end QA workflow](#end-to-end-qa-workflow)
 - [Advanced](#advanced)
 - [Contributing & versioning](#contributing--versioning)
@@ -25,7 +25,8 @@ Repo-agnostic. Works on any Playwright project — the only hardcoded contract i
 
 ## What it is
 
-`observo-qa-toolkit` bundles seven skills covering the QA lifecycle:
+`observo-qa-toolkit` bundles eight skills covering the QA lifecycle and an
+opt-in telemetry bootstrap:
 
 - write a PRD from raw input,
 - test the PRD itself for ambiguity / gaps / conflicts,
@@ -163,7 +164,7 @@ The skill picks (or creates) an Observo run, executes Playwright, pushes per-cas
 
 ---
 
-## The 7 skills
+## The 8 skills
 
 | Skill | What it does | Example trigger |
 |---|---|---|
@@ -174,6 +175,7 @@ The skill picks (or creates) an Observo run, executes Playwright, pushes per-cas
 | `observo-review-test-case` | Reviews one or more Observo cases against a 15-criteria quality checklist; posts per-issue comments via MCP; assigns a 0–10 score; flips status to `CHANGES_REQUESTED` when comments were created. | "review test case OB-12" |
 | `pw-generate` | Generates Playwright `.spec.ts` files, wired to Observo via the `@observo:<code>` tag. Repo-agnostic discovery. | "generate Playwright tests for OB-12..OB-49" |
 | `pw-run` | Runs Playwright and writes results back to Observo. Coexists with an in-repo `observo-reporter.ts` when present (skips duplicate writeback). | "/pw-run", "run e2e and push to Observo" |
+| `observo-toolkit-bootstrap` | One-time `plugin_install` Layer 2 telemetry beacon per consumer repo. Gated on `telemetry_enabled` opt-in; idempotent (marker at `.observo-toolkit/.install-seeded`); re-fires on plugin version bump. | "set up observo-qa-toolkit", "bootstrap observo plugin" |
 
 ---
 
