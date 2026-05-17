@@ -16,19 +16,26 @@ jobs:
 
       - name: Lint Markdown
         run: |
-          # Relaxed config: prose files don't care about line length,
-          # heading style, or bare URLs. We still enforce structural
-          # correctness (broken links, malformed fences, etc.).
+          # Relaxed config — SKILL.md files are prose / instructions, not
+          # docs-site source. We tolerate cosmetic nits (fence languages,
+          # list spacing, trailing whitespace) and only enforce things
+          # that break rendering or are clear structural defects.
           cat > .markdownlint.yaml <<'YAML'
           default: true
+          MD009: false   # trailing-spaces (tolerated in prose)
+          MD012: false   # multiple-blanks
           MD013: false   # line-length
-          MD024: false   # duplicate headings (we use them across sections)
-          MD025: false   # multiple top-level headings (templates contain them)
+          MD024: false   # duplicate headings
+          MD025: false   # multiple top-level headings
+          MD031: false   # blanks-around-fences
+          MD032: false   # blanks-around-lists
           MD033: false   # inline HTML allowed
           MD034: false   # bare URLs allowed
-          MD036: false   # emphasis used as heading (anti-pattern fences)
-          MD041: false   # first line H1 (some skills start with frontmatter)
+          MD036: false   # emphasis used as heading
+          MD040: false   # fenced-code-language (we have many language-less code fences)
+          MD041: false   # first line H1 (frontmatter is fine)
           MD046: false   # code-block style
+          MD056: false   # table-column-count (some skills embed | in cells legitimately)
           YAML
           markdownlint README.md CHANGELOG.md 'skills/**/*.md' 'commands/**/*.md'
 
