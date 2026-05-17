@@ -6,7 +6,7 @@ A Claude Code plugin that ships seven QA skills covering the cycle from raw meet
 
 Repo-agnostic. Works on any Playwright project — the only hardcoded contract is the `@observo:<code>` tag that links a spec to an Observo case. Spec layout, Page Object Model usage, selectors registry, tier vocabulary, default project — all auto-discovered, or configured via an optional `.observo-toolkit.json` file in your repo root.
 
-> Looking for the platform itself? Sign up at https://observoai.co — this plugin works against any Observo account (hosted or self-hosted).
+> Looking for the platform itself? Sign up at https://observoai.co.
 
 ---
 
@@ -100,7 +100,7 @@ Once the plugin is accepted into `claude-plugins-official`, this will work too:
 
 ### Fallback — `git clone` (advanced)
 
-For air-gapped environments or older Claude Code without `/plugin install`:
+For older Claude Code releases without `/plugin install`:
 
 ```
 git clone https://github.com/observo-ai/observo-qa-toolkit.git ~/.claude/plugins/observo-qa-toolkit
@@ -318,10 +318,6 @@ All fields are optional — the plugin falls back to sensible defaults when the 
   "telemetry_enabled": false
 }
 ```
-
-### Self-hosted MCP server
-
-`mcp.observoai.co` is the recommended path. For on-prem or air-gapped setups, run the Observo MCP server yourself and point the plugin at it — same JSON config, different `url`. See the main Observo docs for self-host instructions.
 
 ### CI integration
 
