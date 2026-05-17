@@ -60,7 +60,7 @@ Two commands inside Claude Code:
 
 After the plugin lands, set up access to the platform:
 
-1. **Get your API key** at https://app.observoai.co (Settings → API Keys).
+1. **Get your API key** at https://observoai.co (Settings → API Keys).
 2. **Configure the Observo MCP server.** Add this block to your MCP config (e.g. `~/.config/claude/mcp.json` or `~/.claude/mcp.json`):
 
    ```jsonc
