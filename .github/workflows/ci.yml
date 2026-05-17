@@ -48,8 +48,11 @@ jobs:
         run: |
           # Public plugin must not leak the author's monorepo paths or
           # personal/Observo identities. CI fails on any match.
+          # CHANGELOG.md is exempt by design — it describes past changes
+          # including the removal of these identifiers, so quoting them
+          # in past tense is legitimate history.
           if grep -rEn "kb-observo|paynoomo|/Users/|dineviser|yatsinaba|blake\.y@globalit" \
-               skills/ commands/ README.md CHANGELOG.md; then
+               skills/ commands/ README.md; then
             echo "::error::host-coupled identifier found — see grep output above"
             exit 1
           fi
