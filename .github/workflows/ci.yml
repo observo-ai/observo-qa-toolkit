@@ -1,0 +1,103 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli@0.41.0
+
+      - name: Lint Markdown
+        run: |
+          # Relaxed config: prose files don't care about line length,
+          # heading style, or bare URLs. We still enforce structural
+          # correctness (broken links, malformed fences, etc.).
+          cat > .markdownlint.yaml <<'YAML'
+          default: true
+          MD013: false   # line-length
+          MD024: false   # duplicate headings (we use them across sections)
+          MD025: false   # multiple top-level headings (templates contain them)
+          MD033: false   # inline HTML allowed
+          MD034: false   # bare URLs allowed
+          MD036: false   # emphasis used as heading (anti-pattern fences)
+          MD041: false   # first line H1 (some skills start with frontmatter)
+          MD046: false   # code-block style
+          YAML
+          markdownlint README.md CHANGELOG.md 'skills/**/*.md' 'commands/**/*.md'
+
+  anti-coupling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No host-coupled identifiers
+        run: |
+          # Public plugin must not leak the author's monorepo paths or
+          # personal/Observo identities. CI fails on any match.
+          if grep -rEn "kb-observo|paynoomo|/Users/|dineviser|yatsinaba|blake\.y@globalit" \
+               skills/ commands/ README.md CHANGELOG.md; then
+            echo "::error::host-coupled identifier found — see grep output above"
+            exit 1
+          fi
+
+      - name: Strict English-only in skills/ + commands/
+        run: |
+          # SKILL.md + commands body must be English. Cyrillic body
+          # was a legacy author-locale leak; multilingual user input
+          # is a config-layer concern, not hardcoded skill content.
+          # README + CHANGELOG are exempt (curated separately).
+          if LC_ALL=C grep -rEnP '[\x{0400}-\x{04FF}]' skills/ commands/; then
+            echo "::error::Cyrillic content found in skills/ or commands/"
+            exit 1
+          fi
+
+  manifest-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: plugin.json is valid JSON
+        run: jq empty .claude-plugin/plugin.json
+
+      - name: plugin.json has required fields
+        run: |
+          jq -e '.name and .description and .version and .license' .claude-plugin/plugin.json
+          # name must match the repo dir name when installed
+          test "$(jq -r .name .claude-plugin/plugin.json)" = "observo-qa-toolkit"
+
+      - name: plugin.json version is semver
+        run: |
+          v=$(jq -r .version .claude-plugin/plugin.json)
+          # Anchored semver: MAJOR.MINOR.PATCH with optional -prerelease and +build.
+          # Accepts 0.x.y for pre-release; tightened to ^[1-9] in OB-268.
+          if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::plugin.json version '$v' is not semver"
+            exit 1
+          fi
+
+      - name: every skill has SKILL.md with frontmatter name + description
+        run: |
+          set -e
+          for skill_dir in skills/*/; do
+            f="${skill_dir}SKILL.md"
+            if [ ! -f "$f" ]; then
+              echo "::error::missing $f"
+              exit 1
+            fi
+            if ! grep -q '^name:' "$f" || ! grep -q '^description:' "$f"; then
+              echo "::error::$f missing frontmatter name: or description:"
+              exit 1
+            fi
+          done
+
+      - name: .observo-toolkit.example.json is valid JSONC
+        run: |
+          # JSONC (JSON + // comments) — strip comments before piping to jq.
+          sed 's|//.*$||' .observo-toolkit.example.json | jq empty
