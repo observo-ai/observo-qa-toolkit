@@ -1,0 +1,76 @@
+{
+  // ============================================================
+  // observo-qa-toolkit — repo-level config (all fields optional)
+  // ============================================================
+  // Copy this file to .observo-toolkit.json in the root of your repo
+  // and edit values. The plugin falls back to sensible defaults for
+  // any field you omit, so deleting fields is also fine.
+  //
+  // This file uses JSONC syntax (JSON + // comments). Strip comments
+  // before piping to strict JSON parsers, or use a JSONC-aware reader.
+
+  // --- prd skill --------------------------------------------------
+  // Where to save generated PRDs. Created if missing.
+  // Fallback when omitted: "./docs/PRDs/"
+  "prd_save_dir": "docs/PRDs",
+  // Body language for generated PRDs. "en" | "ru" | "ua" | … (any
+  // locale code). Section headings always stay English regardless.
+  // Fallback when omitted: "en"
+  "prd_language": "en",
+  // Heading language. Keeping "en" is the safer default — it stays
+  // consistent across teams that may want non-English body text.
+  // Fallback when omitted: "en"
+  "prd_headings_language": "en",
+
+  // --- requirements-testing / observo-test-cases / verifier ------
+  // Where the consumer repo keeps its requirements / spec docs.
+  // Fallback when omitted: skills accept user-supplied paths only.
+  "requirements_dir": "docs/requirements",
+  // Default Observo project short-code (e.g. "OB", "ACME", "MYPROJ").
+  // Used as a fallback when the user does not name a project in
+  // the prompt. No global default — without this field the skill
+  // asks the user (interactive) or expects --project arg.
+  "default_observo_project": "MYPROJ",
+  // Default assignee for cases created by observo-test-cases.
+  // Resolves to owner_id + reviewer_id via mcp__observo__list_account_users.
+  // Fallback when omitted: skill asks the user once and remembers.
+  "default_assignee": "qa@mycompany.com",
+
+  // --- pw-generate / pw-run (legacy .observo-pw.json fields) -----
+  // Where Playwright lives in your repo. Auto-discovered if omitted.
+  "playwright_root": "e2e",
+  // testDir override. Auto-discovered if omitted.
+  "spec_dir": "e2e/tests",
+  // Page Object Model directory. null/absent → POM not used.
+  "pages_dir": "e2e/pages",
+  // Centralised testIds registry path. null/absent → no registry.
+  "selectors_file": "e2e/utils/selectors.ts",
+  // Exported const name inside the registry file.
+  "selectors_export": "TestIds",
+  // Custom Playwright fixtures directory.
+  "fixtures_dir": "e2e/fixtures",
+  // Tier vocabulary used by the consumer repo. Order matters:
+  // safest → riskiest. Empty array → tier tagging skipped entirely.
+  "tier_tags": ["@prod-safe", "@full-stack", "@destructive"],
+  // false → pw-generate skips tier tagging even if tier_tags is set.
+  // Fallback when omitted: true (tier tagging enforced).
+  "tier_tag_required": true,
+  // Path to the optional in-repo observo-reporter.ts. Only used for
+  // detection by pw-run (reporter-coexistence path); pw-generate
+  // ignores this field.
+  "reporter_path": "e2e/reporters/observo-reporter.ts",
+  // Sidecar metadata file the in-repo reporter writes (runKey etc.).
+  // Read by pw-run to resolve the target Observo run when neither
+  // --run nor --create-run was passed.
+  "metadata_file": "e2e/playwright-report/.observo-metadata.json",
+
+  // --- telemetry (opt-in, off by default) ------------------------
+  // See TELEMETRY.md for the full event-field list and privacy
+  // guarantees. Flipping this to true sends anonymized plugin-side
+  // events (install / skill invoke / skill skipped) to Observo for
+  // aggregate usage analytics. Server-side telemetry (MCP tool call
+  // logs) is independent of this flag — that is hosted-side and
+  // documented separately in TELEMETRY.md.
+  // Fallback when omitted: false.
+  "telemetry_enabled": false
+}
