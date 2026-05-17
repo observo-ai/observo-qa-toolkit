@@ -1,69 +1,73 @@
 ---
 name: prd
-description: Write a structured PRD from raw user input — meeting transcripts, notes, or feature descriptions. Body in Russian, section headings in English. Use when the user asks to "напиши PRD", "створи PRD", "draft a PRD", "write a PRD for <feature>", "PRD из транскрипта/нотаток", or provides meeting notes / requirements text expecting a structured product spec back. Default save location in this repo: `kb-observo/20 - Projects/<ProjectName>/PRD-<feature-name>.md`.
+description: Write a structured PRD from raw user input — meeting transcripts, notes, or feature descriptions. Default English body and English section headings; non-English body opt-in via `.observo-toolkit.json:prd_language`. Use when the user asks to "write a PRD", "draft a PRD", "write a PRD for <feature>", "PRD from this transcript / these notes", or provides meeting notes / requirements text expecting a structured product spec back. Default save location: `<prd_save_dir>` from `.observo-toolkit.json`, fallback `./docs/PRDs/<feature-name>.md`.
 ---
 
 # PRD Skill — Write a PRD from user input
 
 The user will provide raw input — typically a meeting transcript, notes, or a brief description of a feature. Your job is to produce a structured PRD.
 
-**Language: Write PRD content in Russian, but keep all section headings in English.** Descriptions, field notes, user stories, and body text must be in Russian. Section headings (Overview, Goals, Data Model, etc.) and code identifiers (field names, endpoints) stay in English.
+**Language: English by default.** Body, section headings, field notes, and user stories are all English. If the consumer repo opts into a different body language via `.observo-toolkit.json:prd_language` (`ru` / `ua` / etc.), keep the section headings English regardless — code identifiers (field names, endpoints) always stay English.
 
 ## Steps
 
 1. Read everything the user provides. If it's a meeting transcript, extract decisions, requirements, field names, data sources, and explicit non-goals.
 2. Ask no clarifying questions unless a critical piece is truly missing (e.g. no target product mentioned at all). Make reasonable assumptions and note them.
-3. Write the PRD using the structure below: headings in English, body text in Russian.
-4. Save the file to the appropriate location. In this repo (observo), default to `kb-observo/20 - Projects/<ProjectName>/PRD-<feature-name>.md` if such a folder structure exists; otherwise ask the user for the target path or save next to related docs.
+3. Write the PRD using the structure below. Body language: read `.observo-toolkit.json:prd_language` — default English; respect the configured value if set.
+4. Save the file to the appropriate location:
+   - Read `.observo-toolkit.json:prd_save_dir` if present — save under that directory.
+   - Otherwise default to `./docs/PRDs/PRD-<feature-name>.md` (create the directory if missing).
+   - If neither path is suitable for the repo, ask the user via `AskUserQuestion` for the target path before writing.
 
 ## PRD Structure
 
 ```
 # PRD: <Feature Name>
 
-**Author:** <из контекста или Blake>
-**Date:** <сегодня>
+**Author:** <from context, or ask the user>
+**Date:** <today>
 **Status:** Draft
-**Source:** <откуда требования, например "Meeting YYYY-MM-DD with X">
+**Source:** <where the requirements came from, e.g. "Meeting YYYY-MM-DD with X">
 
 ---
 
 ## Overview
-Один абзац — что это и зачем нужно.
+One paragraph — what this is and why we need it.
 
 ## Problem Statement
-Что сломано или отсутствует сейчас.
+What is broken or missing today.
 
 ## Goals
-Нумерованный список конкретных результатов.
+Numbered list of concrete outcomes.
 
 ## Non-Goals
-Что явно не входит в эту итерацию.
+What is explicitly out of scope for this iteration.
 
 ## User Stories
-Таблица: # | As a… | I want to… | So that…
+Table: # | As a… | I want to… | So that…
 
 ## Data Model
-Таблица полей: Field | Source | Notes
-Source — одно из: System / Pulled from <Entity> / Bot (from <origin>) / Manual (<кто>)
+Field table: Field | Source | Notes
+Source — one of: System / Pulled from <Entity> / Bot (from <origin>) / Manual (<who>)
 
 ## API Endpoints (if applicable)
-Таблица: Method | Path | Description
+Table: Method | Path | Description
 
 ## UI (if applicable)
-Описание ключевых экранов и взаимодействий. Указать, что read-only, что редактируемо и кем.
+Key screens and interactions. Call out which parts are read-only vs editable, and by whom.
 
 ## Integrations (if applicable)
-Внешние системы (боты, Slack и т.д.) и контракт, которому они должны соответствовать.
+External systems (bots, Slack, third-party services) and the contract they must adhere to.
 
 ## Acceptance Criteria
-Чеклист проверяемых условий.
+Checklist of verifiable conditions.
 
 ## Out of Scope (Future)
-Список явно отложенных вещей.
+Explicitly deferred items.
 ```
 
 ## Notes on tone and decisions
+
 - Always annotate each data field with its source (auto-pulled, bot-filled, manual).
 - Capture who owns each manually-filled field by name if mentioned.
 - When the transcript contains an explicit agreement ("we decided X"), record it as a decision, not a suggestion.

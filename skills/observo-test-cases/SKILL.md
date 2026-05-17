@@ -1,6 +1,6 @@
 ---
 name: observo-test-cases
-description: Generate test cases for a feature, requirement, or PRD and push them to the Observo test management platform with sensible defaults — status=IN_REVIEW and assignee = current user. Use when the user asks to "створи тест кейси", "напиши test cases", "create test cases", "push test cases to Observo", "test cases for <module/requirement>", or similar. If the user did not explicitly say whether they want Observo records or local Jest/RTL/Playwright code, ask first via AskUserQuestion before doing anything.
+description: Generate test cases for a feature, requirement, or PRD and push them to the Observo test management platform with sensible defaults — status=IN_REVIEW and assignee = current user. Use when the user asks to "create test cases", "write test cases", "push test cases to Observo", "test cases for <module/requirement>", or similar. If the user did not explicitly say whether they want Observo records or local Jest/RTL/Playwright code, ask first via AskUserQuestion before doing anything.
 ---
 
 # Observo Test Cases Skill
@@ -9,9 +9,9 @@ Workflow for creating test cases in **Observo** (a test management platform — 
 
 ## Trigger
 
-The user asks (UA or EN) to write/create/push test cases for a feature, requirement, PRD, module, or kb-observo doc. Phrases like:
-- "створи тест кейси для <X>"
-- "напиши test cases на <module>"
+The user asks to write/create/push test cases for a feature, requirement, PRD, or module. Phrases like:
+- "create test cases for <X>"
+- "write test cases for <module>"
 - "create test cases for <feature/requirement>"
 - "push test cases to Observo"
 
@@ -33,7 +33,7 @@ Do NOT assume the default. Asking is cheap; pushing 50 cases to Observo when the
 
 ### 1. Identify the source
 
-The "feature/requirement" usually lives under `kb-observo/04-Product/Requirements/` (as-built docs) or `kb-observo/04-Product/PRDs/`. Read the doc end-to-end. The Acceptance Criteria list is the primary source of test scenarios.
+The "feature/requirement" usually lives under your repo's requirements / PRD folder — configurable via `requirements_dir` in `.observo-toolkit.json` (typical examples: `./docs/requirements/`, `./docs/PRDs/`, `./spec/`). Read the doc end-to-end. The Acceptance Criteria list is the primary source of test scenarios.
 
 ### 1a. Requirement quality gate (optional, recommended)
 
@@ -132,7 +132,7 @@ Use `mcp__observo__bulk_create_test_cases` (single call for the whole batch). Pe
 
 Default status for every freshly generated case is **`STATUS_IN_REVIEW`** — the user needs to review batched output before promoting it. But this is a default, not a hard rule:
 
-- If the user explicitly named a status in their request (`status=STATUS_APPROVED`, "create as draft", "помісти в approved" тощо) → honour it.
+- If the user explicitly named a status in their request (`status=STATUS_APPROVED`, "create as draft", "put it in approved", etc.) → honour it.
 - If the user did NOT mention status at all → ask **once** via `AskUserQuestion` with options:
   1. **`STATUS_IN_REVIEW` (Recommended)** — needs my review before approval
   2. `STATUS_DRAFT` — work-in-progress, not ready for review

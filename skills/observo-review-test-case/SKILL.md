@@ -1,6 +1,6 @@
 ---
 name: observo-review-test-case
-description: Review one or more Observo test cases against a 15-criteria quality checklist, post per-issue review comments via MCP (scope CASE / FIELD / STEP), assign a compact 0–10 score, and flip status to STATUS_CHANGES_REQUESTED when comments were actually created. Use when the user asks to "review test case", "відревьюй кейс", "rate the quality of cases in suite X", "score test cases", or otherwise wants a systematic QA pass on an Observo case.
+description: Review one or more Observo test cases against a 15-criteria quality checklist, post per-issue review comments via MCP (scope CASE / FIELD / STEP), assign a compact 0–10 score, and flip status to STATUS_CHANGES_REQUESTED when comments were actually created. Use when the user asks to "review test case", "rate the quality of cases in suite X", "score test cases", or otherwise wants a systematic QA pass on an Observo case.
 ---
 
 # Observo Test Case Review Skill
@@ -9,10 +9,9 @@ Systematic quality review of test cases stored in **Observo** (a test management
 
 ## Trigger
 
-The user asks (UA or EN) to QA-review one or more test cases. Phrases like:
-- "відревьюй кейс DEMO-37"
+The user asks to QA-review one or more test cases. Phrases like:
 - "review test case DEMO-37"
-- "пройдись по саті DEMO-LOGIN і скажи, які кейси слабкі"
+- "walk through suite DEMO-LOGIN and flag the weak cases"
 - "score these test cases"
 - "rate the quality of cases in suite X"
 

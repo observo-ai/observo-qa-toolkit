@@ -1,6 +1,6 @@
 ---
 name: requirements-testing
-description: Test the requirements themselves BEFORE development — analyze a PRD / requirements doc / Jira ticket / user story for ambiguity, completeness gaps, internal conflicts, untestable statements, missing acceptance criteria, and implicit security risks. Outputs a categorised list of issues with concrete suggested fixes (better wording, missing AC, edge cases to add). If a Jira ticket key was provided AND a Jira MCP server is available, posts the findings as a comment on the ticket; otherwise prints the list to the console. Use when the user asks to "тестуй рекваерменти", "перевір PRD", "review requirements", "test the requirements", "requirements testing for <ticket>", "проаналізуй вимоги на ambiguity", "знайди дірки в PRD", "check requirements quality", or names a Jira ticket key with intent to review. NOT for generating test cases (that's observo-test-cases) — this skill stops at fixing the requirement.
+description: Test the requirements themselves BEFORE development — analyze a PRD / requirements doc / Jira ticket / user story for ambiguity, completeness gaps, internal conflicts, untestable statements, missing acceptance criteria, and implicit security risks. Outputs a categorised list of issues with concrete suggested fixes (better wording, missing AC, edge cases to add). If a Jira ticket key was provided AND a Jira MCP server is available, posts the findings as a comment on the ticket; otherwise prints the list to the console. Use when the user asks to "review requirements", "test the requirements", "requirements testing for <ticket>", "analyze the requirements for ambiguity", "find gaps in the PRD", "check requirements quality", or names a Jira ticket key with intent to review. NOT for generating test cases (that's observo-test-cases) — this skill stops at fixing the requirement.
 ---
 
 # Requirements Testing
@@ -11,22 +11,21 @@ This is distinct from `observo-test-cases` (which assumes the requirement is goo
 
 ## Trigger
 
-User asks (UA / EN) to review or test requirements *as a deliverable*, not yet asking for test cases. Phrases:
+User asks to review or test requirements *as a deliverable*, not yet asking for test cases. Phrases:
 
-- "тестуй рекваерменти"
-- "перевір PRD / requirements doc"
+- "review the PRD / requirements doc"
 - "review the requirements for <X>"
-- "знайди дірки / ambiguity у вимогах"
+- "find gaps / ambiguity in the requirements"
 - "requirements testing for <ticket / file>"
-- "проаналізуй на повноту / на конфлікти"
+- "analyze for completeness / conflicts"
 - "check requirements quality for <topic>"
-- User pastes / names a Jira ticket and asks "що тут не так?", "є проблеми?", "глянь чи нормально"
+- User pastes / names a Jira ticket and asks "what's wrong here?", "any problems?", "does this look right?"
 
 ## Inputs
 
 One of the following must be supplied (ask once via `AskUserQuestion` if it's not clear from the conversation):
 
-- **File path** to a requirements / PRD / spec / user story doc (typical: `kb-observo/04-Product/Requirements/<file>.md`, `kb-observo/04-Product/PRDs/<file>.md`).
+- **File path** to a requirements / PRD / spec / user story doc (typical: `./docs/requirements/<file>.md`, `./docs/PRDs/<file>.md`, or wherever your repo keeps them).
 - **Jira ticket key** (e.g. `OB-123`, `PROJ-456`). Detected as `[A-Z][A-Z0-9]+-\d+` in the user's message.
 - **Inline text** (user pasted the user story / requirement directly).
 - **Multiple of the above** — e.g. a doc + several linked tickets. Conflict-checking across them is a feature, not a problem.

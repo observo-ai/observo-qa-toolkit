@@ -8,8 +8,8 @@ description: >-
   Stale) at the end. Repo-agnostic — discovers Playwright layout from
   `.observo-pw.json` (or auto-detects). Coexists with in-repo
   `observo-reporter.ts` — detects sidecar `.observo-metadata.json` and skips
-  duplicate work the reporter already did. Use when the user asks "запусти
-  тести і запиши в Observo", "run e2e + push results", "pw-run", "re-push run
+  duplicate work the reporter already did. Use when the user asks "run e2e
+  and write back to Observo", "run e2e + push results", "pw-run", "re-push run
   results", or any request whose deliverable is `cd <project> && npx playwright
   test` + writeback to Observo via MCP.
 ---
@@ -62,8 +62,8 @@ Until that ask exists, keep this skill self-contained — premature abstraction 
 
 ## Trigger
 
-User asks (UA/EN) to run e2e tests + push results to Observo:
-- "запусти тести і запиши в Observo"
+User asks to run e2e tests + push results to Observo:
+- "run e2e tests and write back to Observo"
 - "/pw-run", "/pw-run --run RUN-42 --reuse-results"
 - "run e2e and sync to Observo"
 - "push playwright results to RUN-42"
@@ -162,9 +162,9 @@ Priority chain — stop at first that succeeds:
 
 **Mode A — case-list (default).** Trigger: any specific PW invocation — `/pw-run`, `/pw-run --grep <X>`, "run smoke", "run the login spec", "rerun OB-5". Build `case_ids` from the `@observo:<code>` tags in the specs that will execute (see step 4A.1).
 
-**Mode B — test-plan (regression / full suite).** Trigger: "регресія" / "regression", "повний прогін" / "full suite", "run the plan", "/pw-run --plan", or any phrasing where the user wants to run a curated Observo Test Plan rather than just whatever specs Playwright matches. In this mode the user is asserting an Observo-side scope (the plan), so we let Observo expand it to case_ids server-side — call `create_run` with `plan_key` and let the run track exactly what the plan defines.
+**Mode B — test-plan (regression / full suite).** Trigger: "regression", "full suite", "run the plan", "/pw-run --plan", or any phrasing where the user wants to run a curated Observo Test Plan rather than just whatever specs Playwright matches. In this mode the user is asserting an Observo-side scope (the plan), so we let Observo expand it to case_ids server-side — call `create_run` with `plan_key` and let the run track exactly what the plan defines.
 
-**Choosing when phrasing is ambiguous** (e.g. "прогни тести"): default to Mode A. Don't silently switch to Mode B without an explicit signal — case-list mode is safer because it scopes the run to what PW actually executes.
+**Choosing when phrasing is ambiguous** (e.g. "run the tests"): default to Mode A. Don't silently switch to Mode B without an explicit signal — case-list mode is safer because it scopes the run to what PW actually executes.
 
 ### 4A.1. Mode A — build case_ids from PW specs
 
@@ -391,7 +391,7 @@ Final summary to user:
 - ❌ **Running Playwright before a Run is resolved.** Run resolution is step 4 — it MUST complete before `npx playwright test` is invoked. Otherwise per-case writeback has nowhere to land and attachments leak.
 - ❌ **Failing in interactive default branch with "pass --create-run".** When the user types "run the tests", the skill auto-creates the run with one short `AskUserQuestion` confirm. CI flows pass `--run` or `--create-run` upfront.
 - ❌ **Creating a Run with empty `case_ids`.** If no `@observo:<code>` tags resolve, surface that before MCP write — empty runs pollute the Run list and confuse coverage reports.
-- ❌ **Silently switching from case-list to test-plan mode** because phrasing is ambiguous. Mode B (`plan_key`) is only triggered by explicit signals — "регресія / regression / full suite / run the plan / --plan". On ambiguous phrasing, default to Mode A.
+- ❌ **Silently switching from case-list to test-plan mode** because phrasing is ambiguous. Mode B (`plan_key`) is only triggered by explicit signals — "regression / full suite / run the plan / --plan". On ambiguous phrasing, default to Mode A.
 - ❌ **Picking a test plan silently when the project has >1 active plan.** Always `AskUserQuestion` listing plans with case counts. Silent-pick is OK only when there's exactly one active plan; mention "single plan, no choice" in the discovery snapshot.
 - ❌ **Passing both `plan_key` and `case_ids` to `create_run`.** Server schema is `oneOf`; passing both is undefined behavior. Pick one mode and stick with it.
 - ❌ **Hardcoding paths** (`e2e/`, `playwright-report/results.json`, `OB`). All paths/codes come from discovery (`.observo-pw.json` + auto-detect) per D5. See `pw-generate` for the contract.

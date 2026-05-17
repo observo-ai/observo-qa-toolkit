@@ -9,10 +9,9 @@ description: >-
   selectors registry, tier tags, default Observo project) is auto-discovered
   from the consumer repo or read from an optional `.observo-pw.json` config.
   Use when the user asks to "generate Playwright tests", "scaffold Playwright
-  spec", "автоматизуй ці кейси на Playwright", "create Playwright tests for
-  <feature>", "convert OB-X / E2E-X to Playwright", or any request whose
-  deliverable is local Playwright spec files (not Observo records and not a
-  run/report operation).
+  spec", "create Playwright tests for <feature>", "convert OB-X / E2E-X to
+  Playwright", or any request whose deliverable is local Playwright spec files
+  (not Observo records and not a run/report operation).
 ---
 
 # Playwright Test Generator (Observo-aware, repo-agnostic)
@@ -32,11 +31,11 @@ Generates Playwright `.spec.ts` files for **any consumer repo** that has Playwri
 
 ## Trigger
 
-User asks (UA/EN) to write Playwright tests / specs / e2e files. Phrases:
+User asks to write Playwright tests / specs / e2e files. Phrases:
 - "generate Playwright tests for <feature>"
 - "scaffold Playwright spec for OB-23"
-- "автоматизуй кейс E2E-007 на Playwright"
-- "напиши playwright тести на <module>"
+- "automate case E2E-007 in Playwright"
+- "write Playwright tests for <module>"
 - "convert these Observo cases to Playwright code"
 
 Weaker / ambiguous signals — disambiguate first (see below):
