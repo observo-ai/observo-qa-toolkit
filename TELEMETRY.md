@@ -27,25 +27,69 @@ Per MCP `tools/call` request, one row is written to a server-side
 | Field | Type | Description |
 |---|---|---|
 | `account_id` | UUID | Your Observo account (already known to the server from your API key). Identifies *whose* aggregate usage this contributes to. |
-| `event_type` | enum string | Always `tool_invoke` for Layer 1 events. |
-| `tool_name` | string | The MCP tool name (e.g. `create_test_case`, `list_runs`). No `mcp__observo__` prefix. |
-| `status` | enum string | `ok` on success, `error` on failure. |
-| `error_code` | enum string \| `null` | Short opaque category: `bad_request` \| `not_found` \| `forbidden` \| `internal` \| `timeout` \| `unknown`. `null` when `status = ok`. Never an error message body. |
-| `duration_ms` | int32 \| `null` | Wall-clock latency of the tool handler. Capped at int32 max. |
+| `event_type` | enum string | `tool_invoke` for normal tool calls; `unknown_tool_invoke` when the client named a tool that does not exist on this server (see [below](#unknown_tool_invoke-events)). |
+| `tool_name` | string | The MCP tool name (e.g. `create_test_case`, `list_runs`). No `mcp__observo__` prefix. For `unknown_tool_invoke` events: whatever name the client *requested* (e.g. `archive_plan`). |
+| `status` | enum string | `ok` on success, `error` on failure. `unknown_tool_invoke` rows are always `error`. |
+| `error_code` | enum string \| `null` | Short opaque category: `bad_request` \| `not_found` \| `forbidden` \| `internal` \| `timeout` \| `unknown`. `null` when `status = ok`. Never an error message body. `unknown_tool_invoke` rows are always `not_found`. |
+| `duration_ms` | int32 \| `null` | Wall-clock latency of the tool handler. Capped at int32 max. `null` for `unknown_tool_invoke` events (the handler never ran). |
 | `plugin_version` | string \| `null` | Always `null` for Layer 1. Reserved for Layer 2. |
+| `arg_schema` | JSON object \| `null` | OB-276: schema-only sampling of the tool's argument shape. See [arg_schema below](#arg_schema-field). `null` for `unknown_tool_invoke` events and when the middleware could not compute a schema. |
 | `created_at` | timestamptz | Insert time, UTC. |
 
 ### What is NOT recorded
 
-- Tool input payloads (test case names, file paths, descriptions, prompts).
+- Tool **input values** (test case names, descriptions, file paths, prompts). `arg_schema` records field *names* and *byte sizes* — never values. See the field section below.
 - Tool output payloads (response bodies, generated artifacts).
 - Error message text or stack traces.
 - User identities beyond the account-scoped `account_id`.
 - IP addresses, user-agents, or any HTTP request metadata other than the
   authorization header (which is decoded into `account_id` and discarded).
-- Anything from the request body that is not the JSON-RPC envelope's
-  `method` and `params.name` (the body is rewound for the handler and
-  never persisted).
+- Anything from the request body other than the JSON-RPC envelope's
+  `method`, `params.name`, and the **top-level keys** of `params.arguments`
+  (the body is rewound for the handler and never persisted; values inside
+  arguments are kept as opaque bytes and only their lengths are recorded).
+
+### `unknown_tool_invoke` events
+
+When a client (Claude or otherwise) calls `tools/call` with a tool name the
+server has never heard of, the MCP SDK rejects the request with its standard
+`Method not found` response. Independently, the middleware records the
+requested name as an `unknown_tool_invoke` row. This is product-demand data:
+the client has already translated a human prompt into a concrete tool
+identifier and we want to know which capabilities people reach for.
+
+Privacy posture is identical to `tool_invoke`: only the **requested name** is
+captured. There are no arguments, no payload, no `plugin_version`, and no
+`duration_ms`. `unknown_tool_invoke` rows are visually distinct from real
+handler errors because they always carry `status=error` + `error_code=not_found`
+and `arg_schema=null`.
+
+### `arg_schema` field
+
+For each successful `tool_invoke` row, the middleware also records a
+schema-only sampling of the tool's argument shape — **never the values
+themselves**. Shape:
+
+```json
+{
+  "present_fields": ["name", "severity", "description"],
+  "field_sizes":    {"name": 5, "severity": 6, "description": 5}
+}
+```
+
+- `present_fields` — top-level keys present in `params.arguments`, in
+  document order. Nested keys are NOT recursed (they may be free-form
+  user input; only top-level keys are part of the public MCP tool schema).
+- `field_sizes` — JSON-encoded byte length of each top-level value
+  (e.g. `"foo"` → 5, `null` → 4, `{"a":1}` → 7). Strings include their
+  surrounding quotes.
+
+The payload is capped at **4 KiB** end-to-end (the mcp/ middleware
+short-circuits before emitting; the server independently rejects oversized
+or non-object payloads). On overflow or malformed input the row is still
+inserted with `arg_schema = null` — the cap never breaks the user's tool
+call. Aggregate queries that care about argument schema should filter
+`WHERE arg_schema IS NOT NULL`.
 
 ### Can I opt out of Layer 1?
 

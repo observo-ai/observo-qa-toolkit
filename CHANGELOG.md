@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [1.1.2] - 2026-05-17
+
+### Documentation
+
+- **TELEMETRY.md updated for two new Layer 1 signals shipped server-side
+  on the hosted MCP (`mcp.observoai.co`):**
+  - **`unknown_tool_invoke` event_type (OB-275).** When a client names a
+    tool that does not exist on the server, the request is rejected by
+    the SDK with a `Method not found` JSON-RPC error AND independently
+    recorded as an `unknown_tool_invoke` row. This is product-demand
+    data: the client already translated a human prompt into a concrete
+    tool name, so the row tells us which capabilities people reach for.
+    Privacy posture identical to `tool_invoke` — only the requested
+    name is captured.
+  - **`arg_schema` field (OB-276).** Each successful `tool_invoke` row
+    now also records a schema-only sampling of the tool's argument
+    shape:
+    ```json
+    {"present_fields": ["name", "severity"], "field_sizes": {"name": 5, "severity": 6}}
+    ```
+    Field NAMES + JSON-byte SIZES of values, never the values
+    themselves. Top-level keys only (nested objects are not recursed).
+    Capped at 4 KiB end-to-end; oversized payloads produce `arg_schema = null`
+    rather than failing the call.
+
+Both signals are transparent to plugin consumers — no code change is
+required to opt in or out. The same Layer 1 "hosted-side telemetry is on
+for every account using `mcp.observoai.co`" semantic continues to apply.
+If your compliance posture requires no telemetry, file an issue.
+
 ## [1.1.1] - 2026-05-17
 
 ### Fixed
